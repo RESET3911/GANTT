@@ -214,7 +214,8 @@ export default function Home() {
         }
       }
     } catch (e) {
-      setGcalError('GCalからの同期に失敗しました');
+      const msg = e instanceof Error ? e.message : String(e);
+      setGcalError(`GCalからの同期に失敗しました: ${msg}`);
       console.error(e);
     } finally {
       setSyncing(false);

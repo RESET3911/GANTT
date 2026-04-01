@@ -113,7 +113,10 @@ export async function listEvents(
     `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
     { headers: { Authorization: `Bearer ${_accessToken}` } }
   );
-  if (!res.ok) throw new Error(`GCal list events failed: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`GCal list events failed: ${res.status} - ${body}`);
+  }
   const data = await res.json();
   return data.items as GCalEventItem[];
 }

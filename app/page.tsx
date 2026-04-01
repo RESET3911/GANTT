@@ -5,7 +5,7 @@ import { format, parseISO, addDays, subDays } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
 import { Task, ViewState } from '@/types/task';
 import { subscribeTasks, saveTask, updateTaskFields, deleteTask } from '@/lib/storage';
-import { connectGCal, disconnectGCal, isGCalConnected, createGCalEvent, updateGCalEvent, deleteGCalEvent } from '@/lib/gcal';
+import { connectGCal, disconnectGCal, isGCalConnected, createGCalEvent, updateGCalEvent, deleteGCalEvent, listCalendars, listEvents, GCalCalendar } from '@/lib/gcal';
 import { subscribeGanttSettings, GanttSettings } from '@/lib/ganttSettings';
 import { SaveData } from '@/components/TaskModal';
 import ControlBar from '@/components/ControlBar';
@@ -38,6 +38,8 @@ export default function Home() {
   const [gcalError, setGcalError] = useState<string | null>(null);
   const [ganttSettings, setGanttSettings] = useState<GanttSettings>({ assignees: [] });
   const [showSettings, setShowSettings] = useState(false);
+  const [calendars, setCalendars] = useState<GCalCalendar[]>([]);
+  const [syncing, setSyncing] = useState(false);
 
   // Firebase リアルタイム購読
   useEffect(() => {
@@ -75,14 +77,15 @@ export default function Home() {
 
     if (syncToGCal && gcalConnected) {
       try {
-        const eventId = await createGCalEvent(task);
+        const calId = ganttSettings.gcalCalendarId ?? 'primary';
+        const eventId = await createGCalEvent(task, calId);
         await updateTaskFields(task.id, { gcalEventId: eventId });
       } catch (e) {
         console.error('GCal sync failed:', e);
       }
     }
     setModal(null);
-  }, [gcalConnected]);
+  }, [gcalConnected, ganttSettings]);
 
   const handleUpdate = useCallback(async (data: SaveData | Task, syncToGCal: boolean) => {
     const task = data as Task;
@@ -91,10 +94,11 @@ export default function Home() {
 
     if (syncToGCal && gcalConnected) {
       try {
+        const calId = ganttSettings.gcalCalendarId ?? 'primary';
         if (updated.gcalEventId) {
-          await updateGCalEvent(updated.gcalEventId, updated);
+          await updateGCalEvent(updated.gcalEventId, updated, calId);
         } else {
-          const eventId = await createGCalEvent(updated);
+          const eventId = await createGCalEvent(updated, calId);
           await updateTaskFields(updated.id, { gcalEventId: eventId });
         }
       } catch (e) {
@@ -102,11 +106,14 @@ export default function Home() {
       }
     }
     setModal(null);
-  }, [gcalConnected]);
+  }, [gcalConnected, ganttSettings]);
 
   const handleDelete = useCallback(async (task: Task) => {
     if (task.gcalEventId && gcalConnected) {
-      try { await deleteGCalEvent(task.gcalEventId); } catch { /* ignore */ }
+      try {
+        const calId = ganttSettings.gcalCalendarId ?? 'primary';
+        await deleteGCalEvent(task.gcalEventId, calId);
+      } catch { /* ignore */ }
     }
     await deleteTask(task.id);
     setModal(null);
@@ -125,7 +132,13 @@ export default function Home() {
   const handleConnectGCal = () => {
     setGcalError(null);
     connectGCal(
-      () => setGcalConnected(true),
+      async () => {
+        setGcalConnected(true);
+        try {
+          const cals = await listCalendars();
+          setCalendars(cals);
+        } catch { /* ignore */ }
+      },
       msg => setGcalError(msg)
     );
   };
@@ -133,7 +146,80 @@ export default function Home() {
   const handleDisconnectGCal = () => {
     disconnectGCal();
     setGcalConnected(false);
+    setCalendars([]);
   };
+
+  const handleSyncFromGCal = useCallback(async () => {
+    if (!gcalConnected) return;
+    setSyncing(true);
+    setGcalError(null);
+    try {
+      const calId = ganttSettings.gcalCalendarId ?? 'primary';
+      // 過去3ヶ月〜未来12ヶ月の範囲で取得
+      const timeMin = format(subDays(new Date(), 90), 'yyyy-MM-dd');
+      const timeMax = format(addDays(new Date(), 365), 'yyyy-MM-dd');
+      const events = await listEvents(calId, timeMin, timeMax);
+
+      const now = new Date().toISOString();
+      for (const ev of events) {
+        if (!ev.summary) continue;
+
+        // 日付を正規化（終日イベントのendは exclusive なので -1日）
+        const startDate = ev.start.date
+          ? ev.start.date
+          : format(new Date(ev.start.dateTime!), 'yyyy-MM-dd');
+        const endDateRaw = ev.end.date
+          ? ev.end.date
+          : format(new Date(ev.end.dateTime!), 'yyyy-MM-dd');
+        // GCal の終日イベントは end が exclusive なので1日戻す
+        const endDate = ev.end.date
+          ? format(subDays(new Date(endDateRaw), 1), 'yyyy-MM-dd')
+          : endDateRaw;
+
+        // 既存タスクと gcalEventId で照合
+        const existing = tasks.find(t => t.gcalEventId === ev.id);
+        if (existing) {
+          // タイトル・日付が変わっていれば更新
+          if (
+            existing.title !== ev.summary ||
+            existing.startDate !== startDate ||
+            existing.endDate !== endDate ||
+            existing.notes !== (ev.description ?? undefined)
+          ) {
+            await saveTask({
+              ...existing,
+              title: ev.summary,
+              startDate,
+              endDate,
+              notes: ev.description || undefined,
+              updatedAt: now,
+            });
+          }
+        } else {
+          // 新規タスクとして登録
+          const task: Task = {
+            id: uuidv4(),
+            title: ev.summary,
+            startDate,
+            endDate,
+            status: 'todo',
+            assignee: '',
+            milestoneFlag: false,
+            notes: ev.description || undefined,
+            gcalEventId: ev.id,
+            createdAt: now,
+            updatedAt: now,
+          };
+          await saveTask(task);
+        }
+      }
+    } catch (e) {
+      setGcalError('GCalからの同期に失敗しました');
+      console.error(e);
+    } finally {
+      setSyncing(false);
+    }
+  }, [gcalConnected, ganttSettings, tasks]);
 
   const modalTask = modal?.type === 'edit' ? modal.task : null;
   const modalDate = modal?.type === 'new' ? modal.date : undefined;
@@ -172,12 +258,21 @@ export default function Home() {
 
           {/* Google Calendar button */}
           {gcalConnected ? (
-            <button
-              onClick={handleDisconnectGCal}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-green-50 text-green-700 border border-green-300 rounded-lg hover:bg-green-100 transition-colors"
-            >
-              📅 GCal連携中
-            </button>
+            <>
+              <button
+                onClick={handleSyncFromGCal}
+                disabled={syncing}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
+              >
+                {syncing ? '同期中...' : '📥 GCalから同期'}
+              </button>
+              <button
+                onClick={handleDisconnectGCal}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-green-50 text-green-700 border border-green-300 rounded-lg hover:bg-green-100 transition-colors"
+              >
+                📅 GCal連携中
+              </button>
+            </>
           ) : (
             <button
               onClick={handleConnectGCal}
@@ -250,6 +345,8 @@ export default function Home() {
       {showSettings && (
         <SettingsModal
           settings={ganttSettings}
+          gcalConnected={gcalConnected}
+          calendars={calendars}
           onClose={() => setShowSettings(false)}
         />
       )}

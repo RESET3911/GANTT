@@ -18,7 +18,7 @@ declare global {
   }
 }
 
-const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
+const SCOPES = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly';
 let _accessToken: string | null = null;
 
 export function isGCalConnected(): boolean {
@@ -71,9 +71,56 @@ function taskToEvent(task: Pick<Task, 'title' | 'startDate' | 'endDate' | 'notes
   };
 }
 
-export async function createGCalEvent(task: Task): Promise<string> {
+export interface GCalCalendar {
+  id: string;
+  summary: string;
+}
+
+export async function listCalendars(): Promise<GCalCalendar[]> {
   const res = await fetch(
-    'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+    'https://www.googleapis.com/calendar/v3/users/me/calendarList',
+    { headers: { Authorization: `Bearer ${_accessToken}` } }
+  );
+  if (!res.ok) throw new Error(`GCal list calendars failed: ${res.status}`);
+  const data = await res.json();
+  return (data.items as { id: string; summary: string }[]).map(c => ({
+    id: c.id,
+    summary: c.summary,
+  }));
+}
+
+export interface GCalEventItem {
+  id: string;
+  summary: string;
+  description?: string;
+  start: { date?: string; dateTime?: string };
+  end: { date?: string; dateTime?: string };
+}
+
+export async function listEvents(
+  calendarId: string,
+  timeMin: string,
+  timeMax: string
+): Promise<GCalEventItem[]> {
+  const params = new URLSearchParams({
+    timeMin: new Date(timeMin).toISOString(),
+    timeMax: new Date(timeMax).toISOString(),
+    singleEvents: 'true',
+    orderBy: 'startTime',
+    maxResults: '250',
+  });
+  const res = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
+    { headers: { Authorization: `Bearer ${_accessToken}` } }
+  );
+  if (!res.ok) throw new Error(`GCal list events failed: ${res.status}`);
+  const data = await res.json();
+  return data.items as GCalEventItem[];
+}
+
+export async function createGCalEvent(task: Task, calendarId = 'primary'): Promise<string> {
+  const res = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
     {
       method: 'POST',
       headers: {
@@ -88,9 +135,9 @@ export async function createGCalEvent(task: Task): Promise<string> {
   return data.id as string;
 }
 
-export async function updateGCalEvent(eventId: string, task: Task): Promise<void> {
+export async function updateGCalEvent(eventId: string, task: Task, calendarId = 'primary'): Promise<void> {
   const res = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`,
     {
       method: 'PUT',
       headers: {
@@ -103,9 +150,9 @@ export async function updateGCalEvent(eventId: string, task: Task): Promise<void
   if (!res.ok) throw new Error(`GCal update failed: ${res.status}`);
 }
 
-export async function deleteGCalEvent(eventId: string): Promise<void> {
+export async function deleteGCalEvent(eventId: string, calendarId = 'primary'): Promise<void> {
   await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`,
     {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${_accessToken}` },

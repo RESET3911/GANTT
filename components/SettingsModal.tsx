@@ -2,14 +2,18 @@
 
 import { useState } from 'react';
 import { GanttSettings, saveGanttSettings } from '@/lib/ganttSettings';
+import { GCalCalendar } from '@/lib/gcal';
 
 type Props = {
   settings: GanttSettings;
+  gcalConnected?: boolean;
+  calendars?: GCalCalendar[];
   onClose: () => void;
 };
 
-export default function SettingsModal({ settings, onClose }: Props) {
+export default function SettingsModal({ settings, gcalConnected, calendars = [], onClose }: Props) {
   const [assignees, setAssignees] = useState<string[]>(settings.assignees);
+  const [gcalCalendarId, setGcalCalendarId] = useState(settings.gcalCalendarId ?? 'primary');
   const [newName, setNewName] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -26,7 +30,7 @@ export default function SettingsModal({ settings, onClose }: Props) {
 
   const handleSave = async () => {
     setSaving(true);
-    await saveGanttSettings({ ...settings, assignees });
+    await saveGanttSettings({ ...settings, assignees, gcalCalendarId });
     setSaving(false);
     onClose();
   };
@@ -84,6 +88,26 @@ export default function SettingsModal({ settings, onClose }: Props) {
               </button>
             </div>
           </div>
+
+          {/* Google Calendar */}
+          {gcalConnected && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-2">📅 同期先カレンダー</label>
+              {calendars.length > 0 ? (
+                <select
+                  value={gcalCalendarId}
+                  onChange={e => setGcalCalendarId(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                >
+                  {calendars.map(cal => (
+                    <option key={cal.id} value={cal.id}>{cal.summary}</option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-xs text-gray-400">カレンダー一覧を取得中...</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Footer */}

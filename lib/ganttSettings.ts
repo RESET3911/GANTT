@@ -5,6 +5,7 @@ const SETTINGS_DOC = doc(db, 'gantt_config', 'settings');
 
 export interface GanttSettings {
   assignees: string[];
+  gcalCalendarId?: string;
 }
 
 export function subscribeGanttSettings(

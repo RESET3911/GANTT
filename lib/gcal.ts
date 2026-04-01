@@ -11,14 +11,14 @@ declare global {
             client_id: string;
             scope: string;
             callback: (resp: { access_token?: string; error?: string }) => void;
-          }) => { requestAccessToken: () => void };
+          }) => { requestAccessToken: (opts?: { prompt?: string }) => void };
         };
       };
     };
   }
 }
 
-const SCOPES = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly';
+const SCOPES = 'https://www.googleapis.com/auth/calendar';
 let _accessToken: string | null = null;
 
 export function isGCalConnected(): boolean {
@@ -47,7 +47,7 @@ export function connectGCal(onSuccess: () => void, onError: (msg: string) => voi
       }
     },
   });
-  tokenClient.requestAccessToken();
+  tokenClient.requestAccessToken({ prompt: 'consent' });
 }
 
 export function disconnectGCal(): void {

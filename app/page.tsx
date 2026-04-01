@@ -5,7 +5,7 @@ import { format, parseISO, addDays, subDays } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
 import { Task, ViewState } from '@/types/task';
 import { subscribeTasks, saveTask, updateTaskFields, deleteTask } from '@/lib/storage';
-import { connectGCal, disconnectGCal, isGCalConnected, createGCalEvent, updateGCalEvent, deleteGCalEvent, listCalendars, listEvents, GCalCalendar } from '@/lib/gcal';
+import { connectGCal, disconnectGCal, isGCalConnected, wasGCalConnected, createGCalEvent, updateGCalEvent, deleteGCalEvent, listCalendars, listEvents, GCalCalendar } from '@/lib/gcal';
 import { subscribeGanttSettings, GanttSettings } from '@/lib/ganttSettings';
 import { SaveData } from '@/components/TaskModal';
 import ControlBar from '@/components/ControlBar';
@@ -50,9 +50,29 @@ export default function Home() {
     return () => unsub();
   }, []);
 
-  // GCal接続状態を再確認（ページ再表示時）
+  // GCal自動再接続（前回接続済みの場合）
   useEffect(() => {
-    setGcalConnected(isGCalConnected());
+    if (!wasGCalConnected()) return;
+    const tryAutoConnect = () => {
+      connectGCal(
+        async () => {
+          setGcalConnected(true);
+          try {
+            const cals = await listCalendars();
+            setCalendars(cals);
+          } catch { /* ignore */ }
+        },
+        () => { /* サイレント失敗 - ユーザーが手動で再接続 */ },
+        true // silent
+      );
+    };
+    // GISスクリプトのロード待ち
+    if (window.google) {
+      tryAutoConnect();
+    } else {
+      const timer = setTimeout(tryAutoConnect, 1500);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   // Gantt設定購読

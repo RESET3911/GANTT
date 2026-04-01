@@ -11,7 +11,7 @@ declare global {
             client_id: string;
             scope: string;
             callback: (resp: { access_token?: string; error?: string }) => void;
-          }) => { requestAccessToken: (opts?: { prompt?: string }) => void };
+          }) => { requestAccessToken: (opts?: { prompt?: string | undefined }) => void };
         };
       };
     };
@@ -19,13 +19,22 @@ declare global {
 }
 
 const SCOPES = 'https://www.googleapis.com/auth/calendar';
+const STORAGE_KEY = 'gcal_was_connected';
 let _accessToken: string | null = null;
 
 export function isGCalConnected(): boolean {
   return _accessToken !== null;
 }
 
-export function connectGCal(onSuccess: () => void, onError: (msg: string) => void): void {
+export function wasGCalConnected(): boolean {
+  return typeof window !== 'undefined' && localStorage.getItem(STORAGE_KEY) === '1';
+}
+
+export function connectGCal(
+  onSuccess: () => void,
+  onError: (msg: string) => void,
+  silent = false
+): void {
   const clientId = process.env.NEXT_PUBLIC_GCAL_CLIENT_ID;
   if (!clientId) {
     onError('NEXT_PUBLIC_GCAL_CLIENT_ID が .env.local に設定されていません');
@@ -41,17 +50,19 @@ export function connectGCal(onSuccess: () => void, onError: (msg: string) => voi
     callback: resp => {
       if (resp.access_token) {
         _accessToken = resp.access_token;
+        localStorage.setItem(STORAGE_KEY, '1');
         onSuccess();
       } else {
-        onError(resp.error ?? '認証に失敗しました');
+        if (!silent) onError(resp.error ?? '認証に失敗しました');
       }
     },
   });
-  tokenClient.requestAccessToken({ prompt: 'consent' });
+  tokenClient.requestAccessToken({ prompt: silent ? '' : undefined });
 }
 
 export function disconnectGCal(): void {
   _accessToken = null;
+  localStorage.removeItem(STORAGE_KEY);
 }
 
 interface GCalEvent {

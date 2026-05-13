@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { format, parseISO, addDays, subDays } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
 import { Task, ViewState } from '@/types/task';
 import { subscribeTasks, saveTask, updateTaskFields, deleteTask } from '@/lib/storage';
 import { connectGCal, disconnectGCal, isGCalConnected, wasGCalConnected, createGCalEvent, updateGCalEvent, deleteGCalEvent, listCalendars, listEvents, GCalCalendar } from '@/lib/gcal';
 import { subscribeGanttSettings, GanttSettings } from '@/lib/ganttSettings';
+import { subscribeDailyTodos, DailyTodo } from '@/lib/dailyTodo';
 import { SaveData } from '@/components/TaskModal';
+import DailyTodoPanel from '@/components/DailyTodoPanel';
 import ControlBar from '@/components/ControlBar';
 import GanttChart from '@/components/GanttChart';
 import ListView from '@/components/ListView';
@@ -40,6 +42,9 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [calendars, setCalendars] = useState<GCalCalendar[]>([]);
   const [syncing, setSyncing] = useState(false);
+  const [dailyTodos, setDailyTodos] = useState<DailyTodo[]>([]);
+  const [todoHeight, setTodoHeight] = useState(260);
+  const isDragging = useRef(false);
 
   // Firebase リアルタイム購読
   useEffect(() => {
@@ -47,7 +52,8 @@ export default function Home() {
       items => { setTasks(items); setLoading(false); },
       () => setLoading(false)
     );
-    return () => unsub();
+    const unsubTodos = subscribeDailyTodos(items => setDailyTodos(items));
+    return () => { unsub(); unsubTodos(); };
   }, []);
 
   // GCal自動再接続（前回接続済みの場合）
@@ -242,6 +248,25 @@ export default function Home() {
     }
   }, [gcalConnected, ganttSettings, tasks]);
 
+  const handleDividerMouseDown = (e: React.MouseEvent) => {
+    isDragging.current = true;
+    const startY = e.clientY;
+    const startHeight = todoHeight;
+
+    const onMove = (ev: MouseEvent) => {
+      if (!isDragging.current) return;
+      const delta = startY - ev.clientY;
+      setTodoHeight(Math.max(140, Math.min(520, startHeight + delta)));
+    };
+    const onUp = () => {
+      isDragging.current = false;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
   const modalTask = modal?.type === 'edit' ? modal.task : null;
   const modalDate = modal?.type === 'new' ? modal.date : undefined;
 
@@ -328,25 +353,44 @@ export default function Home() {
         onNavigateWeek={navigateWeek}
       />
 
-      {/* Main content */}
-      {loading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-gray-400 text-sm">読み込み中...</p>
+      {/* Main content: split top/bottom */}
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+        {/* Top: Gantt / List */}
+        <div className="flex-1 overflow-hidden min-h-0">
+          {loading ? (
+            <div className="h-full flex items-center justify-center">
+              <p className="text-gray-400 text-sm">読み込み中...</p>
+            </div>
+          ) : mode === 'gantt' ? (
+            <GanttChart
+              tasks={tasks}
+              viewState={viewState}
+              onTaskClick={task => setModal({ type: 'edit', task })}
+              onDateClick={date => setModal({ type: 'new', date })}
+            />
+          ) : (
+            <ListView
+              tasks={tasks}
+              viewState={viewState}
+              onTaskClick={task => setModal({ type: 'edit', task })}
+            />
+          )}
         </div>
-      ) : mode === 'gantt' ? (
-        <GanttChart
-          tasks={tasks}
-          viewState={viewState}
-          onTaskClick={task => setModal({ type: 'edit', task })}
-          onDateClick={date => setModal({ type: 'new', date })}
-        />
-      ) : (
-        <ListView
-          tasks={tasks}
-          viewState={viewState}
-          onTaskClick={task => setModal({ type: 'edit', task })}
-        />
-      )}
+
+        {/* Drag handle */}
+        <div
+          onMouseDown={handleDividerMouseDown}
+          className="h-1.5 bg-gray-200 hover:bg-blue-400 active:bg-blue-500 cursor-row-resize flex-shrink-0 transition-colors flex items-center justify-center"
+          title="ドラッグでサイズ調整"
+        >
+          <div className="w-12 h-0.5 bg-gray-400 rounded-full" />
+        </div>
+
+        {/* Bottom: Daily ToDo */}
+        <div className="flex-shrink-0 overflow-hidden border-t border-gray-200" style={{ height: todoHeight }}>
+          <DailyTodoPanel todos={dailyTodos} />
+        </div>
+      </div>
 
       {/* Task Modal */}
       {modal !== null && (

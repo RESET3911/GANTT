@@ -3,20 +3,67 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --canvas: #F8F7F4;
+    --surface: #FFFFFF;
+    --header: #18181B;
+    --accent: #6366F1;
+    --accent-dark: #4F46E5;
+    --accent-soft: #EEF2FF;
+    --today: #F43F5E;
+    --bd: #E4E4E7;
+    --bd-light: #F4F4F5;
+    --t1: #18181B;
+    --t2: #71717A;
+    --t3: #A1A1AA;
+    --weekend: #F4F3F0;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
   body {
-    @apply bg-white text-gray-900;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background-color: var(--canvas);
+    color: var(--t1);
     overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  input[type="date"] {
+    color-scheme: light;
+    font-family: var(--font-mono);
   }
 }
 
 @layer components {
   .pill-btn {
-    @apply px-3 py-1 text-xs font-medium rounded-full border transition-colors cursor-pointer;
+    @apply px-3 py-1 text-xs font-semibold rounded-full transition-all duration-150 cursor-pointer;
+    letter-spacing: 0.01em;
   }
   .pill-btn-active {
-    @apply bg-blue-500 text-white border-blue-500;
+    background-color: var(--accent);
+    color: white;
+    box-shadow: 0 1px 4px rgba(99, 102, 241, 0.35);
   }
   .pill-btn-inactive {
-    @apply bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-500;
+    background-color: transparent;
+    color: var(--t2);
+    border: 1px solid var(--bd);
+  }
+  .pill-btn-inactive:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    background-color: var(--accent-soft);
+  }
+
+  .ctrl-input {
+    @apply text-xs border rounded-lg px-2.5 py-1.5 bg-white focus:outline-none transition-colors;
+    border-color: var(--bd);
+    color: var(--t1);
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+  .ctrl-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
   }
 }

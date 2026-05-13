@@ -11,10 +11,10 @@ type Props = {
 };
 
 const VIEW_RANGES: { value: ViewState['viewRange']; label: string }[] = [
-  { value: 1, label: '1ヶ月' },
-  { value: 2, label: '2ヶ月' },
-  { value: 3, label: '3ヶ月' },
-  { value: 6, label: '6ヶ月' },
+  { value: 1, label: '1M' },
+  { value: 2, label: '2M' },
+  { value: 3, label: '3M' },
+  { value: 6, label: '6M' },
 ];
 
 const GROUP_OPTIONS: { value: GroupBy; label: string }[] = [
@@ -33,32 +33,57 @@ const FILTER_OPTIONS: { value: FilterStatus; label: string }[] = [
   { value: 'not_closed', label: '完了以外' },
 ];
 
+const divider = (
+  <div style={{ width: 1, height: 16, background: 'var(--bd)', flexShrink: 0 }} />
+);
+
 export default function ControlBar({ viewState, onViewStateChange, onToday, onNavigateWeek }: Props) {
   const update = (patch: Partial<ViewState>) => onViewStateChange({ ...viewState, ...patch });
 
   return (
-    <div className="bg-gray-50 border-b flex-shrink-0 px-4 py-2 space-y-2">
-      {/* Row 1: Date + View Range + Navigation */}
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500 font-medium whitespace-nowrap">表示開始日</span>
+    <div style={{
+      background: 'var(--surface)',
+      borderBottom: '1px solid var(--bd)',
+      flexShrink: 0,
+      padding: '8px 20px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 8,
+    }}>
+      {/* Row 1 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        {/* Date nav */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button
+            onClick={() => onNavigateWeek(-1)}
+            style={navBtn}
+            title="1週間前"
+          >
+            ‹
+          </button>
           <input
             type="date"
             value={viewState.viewStartDate}
             onChange={e => update({ viewStartDate: e.target.value })}
-            className="text-xs border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className="ctrl-input"
+            style={{ width: 120 }}
           />
           <button
-            onClick={onToday}
-            className="text-xs bg-white border border-gray-300 hover:border-blue-400 hover:text-blue-500 px-2 py-1 rounded transition-colors"
+            onClick={() => onNavigateWeek(1)}
+            style={navBtn}
+            title="1週間後"
           >
-            今日
+            ›
           </button>
+          <button onClick={onToday} style={ghostBtn}>今日</button>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500 font-medium whitespace-nowrap">表示範囲</span>
-          <div className="flex gap-1">
+        {divider}
+
+        {/* View range */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={labelStyle}>表示</span>
+          <div style={{ display: 'flex', gap: 3 }}>
             {VIEW_RANGES.map(r => (
               <button
                 key={r.value}
@@ -71,30 +96,17 @@ export default function ControlBar({ viewState, onViewStateChange, onToday, onNa
           </div>
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={() => onNavigateWeek(-1)}
-            className="text-xs bg-white border border-gray-300 hover:border-blue-400 hover:text-blue-500 px-3 py-1 rounded transition-colors"
-          >
-            ◀ 1週間前
-          </button>
-          <span className="text-xs font-semibold text-gray-700 min-w-[88px] text-center tabular-nums">
-            {format(parseISO(viewState.viewStartDate), 'yyyy/MM/dd')}
-          </span>
-          <button
-            onClick={() => onNavigateWeek(1)}
-            className="text-xs bg-white border border-gray-300 hover:border-blue-400 hover:text-blue-500 px-3 py-1 rounded transition-colors"
-          >
-            1週間後 ▶
-          </button>
+        {/* Current date display */}
+        <div style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--t2)', fontWeight: 500, letterSpacing: '0.02em' }}>
+          {format(parseISO(viewState.viewStartDate), 'yyyy / MM / dd')}
         </div>
       </div>
 
-      {/* Row 2: Grouping + Filter */}
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500 font-medium whitespace-nowrap">グルーピング</span>
-          <div className="flex gap-1">
+      {/* Row 2 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={labelStyle}>グループ</span>
+          <div style={{ display: 'flex', gap: 3 }}>
             {GROUP_OPTIONS.map(opt => (
               <button
                 key={opt.value}
@@ -107,9 +119,11 @@ export default function ControlBar({ viewState, onViewStateChange, onToday, onNa
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500 font-medium whitespace-nowrap">状態</span>
-          <div className="flex gap-1 flex-wrap">
+        {divider}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={labelStyle}>状態</span>
+          <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
             {FILTER_OPTIONS.map(opt => (
               <button
                 key={opt.value}
@@ -125,3 +139,28 @@ export default function ControlBar({ viewState, onViewStateChange, onToday, onNa
     </div>
   );
 }
+
+const labelStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 600,
+  color: 'var(--t3)',
+  whiteSpace: 'nowrap',
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+};
+
+const navBtn: React.CSSProperties = {
+  width: 28, height: 28,
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  fontSize: 18, fontWeight: 400, lineHeight: 1,
+  background: 'transparent', border: '1px solid var(--bd)',
+  borderRadius: 7, cursor: 'pointer', color: 'var(--t2)',
+  transition: 'all 0.15s',
+};
+
+const ghostBtn: React.CSSProperties = {
+  padding: '4px 10px', fontSize: 11, fontWeight: 600,
+  background: 'transparent', border: '1px solid var(--bd)',
+  borderRadius: 7, cursor: 'pointer', color: 'var(--t2)',
+  transition: 'all 0.15s',
+};

@@ -270,68 +270,69 @@ export default function Home() {
   const modalTask = modal?.type === 'edit' ? modal.task : null;
   const modalDate = modal?.type === 'new' ? modal.date : undefined;
 
+  const hdrBtn = (style?: React.CSSProperties): React.CSSProperties => ({
+    display: 'flex', alignItems: 'center', gap: 6,
+    padding: '5px 12px', fontSize: 12, fontWeight: 500,
+    borderRadius: 8, border: '1px solid rgba(255,255,255,0.14)',
+    background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.78)',
+    cursor: 'pointer', transition: 'all 0.15s', ...style,
+  });
+
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-white">
+    <div className="h-screen flex flex-col overflow-hidden" style={{ background: 'var(--canvas)' }}>
       {/* Header */}
-      <header className="h-12 bg-white border-b flex items-center px-4 gap-3 flex-shrink-0 shadow-sm">
-        <span className="text-xl">📊</span>
-        <h1 className="text-base font-bold text-gray-900">Gantt Scheduler</h1>
+      <header className="flex items-center px-5 gap-4 flex-shrink-0" style={{ background: 'var(--header)', height: 52 }}>
+        {/* Logo */}
+        <div className="flex items-center gap-2.5">
+          <div style={{ width: 28, height: 28, background: 'var(--accent)', borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <svg width="15" height="13" viewBox="0 0 15 13" fill="none">
+              <rect x="0" y="0" width="6" height="2.5" rx="1.25" fill="white"/>
+              <rect x="0" y="5.25" width="11" height="2.5" rx="1.25" fill="white" opacity="0.75"/>
+              <rect x="0" y="10.5" width="8.5" height="2.5" rx="1.25" fill="white" opacity="0.5"/>
+            </svg>
+          </div>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 15, fontWeight: 700, color: '#F8FAFC', letterSpacing: '-0.3px', whiteSpace: 'nowrap' }}>
+            Gantt Scheduler
+          </h1>
+        </div>
 
         {/* Mode toggle */}
-        <div className="flex border border-gray-300 rounded-lg overflow-hidden ml-4">
-          <button
-            onClick={() => setMode('gantt')}
-            className={`px-3 py-1 text-xs font-medium transition-colors ${mode === 'gantt' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-          >
-            ガント
-          </button>
-          <button
-            onClick={() => setMode('list')}
-            className={`px-3 py-1 text-xs font-medium transition-colors ${mode === 'list' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-          >
-            リスト
-          </button>
+        <div style={{ background: 'rgba(255,255,255,0.09)', borderRadius: 9, padding: 3, display: 'flex', gap: 2 }}>
+          {(['gantt', 'list'] as const).map(m => (
+            <button key={m} onClick={() => setMode(m)} style={{
+              padding: '4px 13px', fontSize: 12, fontWeight: 600, borderRadius: 7,
+              background: mode === m ? 'white' : 'transparent',
+              color: mode === m ? 'var(--header)' : 'rgba(255,255,255,0.6)',
+              border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+            }}>
+              {m === 'gantt' ? 'ガント' : 'リスト'}
+            </button>
+          ))}
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          {/* Settings */}
-          <button
-            onClick={() => setShowSettings(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white text-gray-600 border border-gray-300 rounded-lg hover:border-gray-400 transition-colors"
-          >
-            ⚙️ 設定
-          </button>
+          <button onClick={() => setShowSettings(true)} style={hdrBtn()}>⚙️ 設定</button>
 
-          {/* Google Calendar button */}
           {gcalConnected ? (
             <>
-              <button
-                onClick={handleSyncFromGCal}
-                disabled={syncing}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
-              >
+              <button onClick={handleSyncFromGCal} disabled={syncing} style={hdrBtn({ opacity: syncing ? 0.5 : 1, borderColor: 'rgba(99,102,241,0.45)', background: 'rgba(99,102,241,0.15)', color: '#A5B4FC' })}>
                 {syncing ? '同期中...' : '📥 GCalから同期'}
               </button>
-              <button
-                onClick={handleDisconnectGCal}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-green-50 text-green-700 border border-green-300 rounded-lg hover:bg-green-100 transition-colors"
-              >
+              <button onClick={handleDisconnectGCal} style={hdrBtn({ borderColor: 'rgba(34,197,94,0.38)', background: 'rgba(34,197,94,0.1)', color: '#86EFAC' })}>
                 📅 GCal連携中
               </button>
             </>
           ) : (
-            <button
-              onClick={handleConnectGCal}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white text-gray-600 border border-gray-300 rounded-lg hover:border-blue-400 hover:text-blue-500 transition-colors"
-            >
-              📅 Googleカレンダー連携
-            </button>
+            <button onClick={handleConnectGCal} style={hdrBtn()}>📅 Googleカレンダー連携</button>
           )}
 
-          <button
-            onClick={() => setModal({ type: 'new' })}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
-          >
+          <button onClick={() => setModal({ type: 'new' })} style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            padding: '6px 16px', fontSize: 13, fontWeight: 600,
+            borderRadius: 8, background: 'var(--accent)', color: 'white',
+            border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+            boxShadow: '0 2px 8px rgba(99,102,241,0.4)',
+          }}>
             + タスク追加
           </button>
         </div>
@@ -339,9 +340,9 @@ export default function Home() {
 
       {/* GCal error */}
       {gcalError && (
-        <div className="bg-red-50 border-b border-red-200 px-4 py-2 flex items-center justify-between">
-          <span className="text-xs text-red-600">⚠️ {gcalError}</span>
-          <button onClick={() => setGcalError(null)} className="text-red-400 hover:text-red-600 text-xs">✕</button>
+        <div style={{ background: '#FFF1F2', borderBottom: '1px solid #FECDD3', padding: '8px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 12, color: '#E11D48' }}>⚠️ {gcalError}</span>
+          <button onClick={() => setGcalError(null)} style={{ color: '#FDA4AF', fontSize: 12, background: 'none', border: 'none', cursor: 'pointer' }}>✕</button>
         </div>
       )}
 

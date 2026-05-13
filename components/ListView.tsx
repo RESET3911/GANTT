@@ -17,21 +17,21 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   closed: 'クローズ',
 };
 
-const STATUS_STYLE: Record<TaskStatus, string> = {
-  todo: 'bg-gray-100 text-gray-600',
-  in_progress: 'bg-blue-100 text-blue-700',
-  done: 'bg-green-100 text-green-600',
-  closed: 'bg-gray-100 text-gray-400',
+const STATUS_STYLE: Record<TaskStatus, React.CSSProperties> = {
+  todo:        { background: '#F4F4F5', color: '#71717A' },
+  in_progress: { background: 'rgba(99,102,241,0.1)', color: '#4F46E5' },
+  done:        { background: '#DCFCE7', color: '#16A34A' },
+  closed:      { background: '#F4F4F5', color: '#A1A1AA' },
 };
 
 function daysRemaining(endDate: string): { label: string; color: string } {
   const today = startOfDay(new Date());
   const end = parseISO(endDate);
   const diff = differenceInDays(end, today);
-  if (diff < 0) return { label: `${Math.abs(diff)}日超過`, color: 'text-red-500 font-semibold' };
-  if (diff === 0) return { label: '今日', color: 'text-orange-500 font-semibold' };
-  if (diff <= 3) return { label: `残り${diff}日`, color: 'text-orange-400' };
-  return { label: `残り${diff}日`, color: 'text-gray-400' };
+  if (diff < 0) return { label: `${Math.abs(diff)}日超過`, color: '#EF4444' };
+  if (diff === 0) return { label: '今日まで', color: '#F97316' };
+  if (diff <= 3) return { label: `残り${diff}日`, color: '#F59E0B' };
+  return { label: `残り${diff}日`, color: 'var(--t3)' };
 }
 
 function TaskRow({ task, onTaskClick }: { task: Task; onTaskClick: (t: Task) => void }) {
@@ -39,55 +39,82 @@ function TaskRow({ task, onTaskClick }: { task: Task; onTaskClick: (t: Task) => 
   const today = startOfDay(new Date());
   const isOverdue = isBefore(parseISO(task.endDate), today) && task.status !== 'done' && task.status !== 'closed';
   const isDone = task.status === 'done' || task.status === 'closed';
-  const tdCls = 'px-3 py-2 text-sm';
 
   return (
     <tr
       onClick={() => onTaskClick(task)}
-      className={`border-b border-gray-100 cursor-pointer hover:bg-blue-50 transition-colors ${isOverdue ? 'bg-red-50' : ''} ${isDone ? 'opacity-60' : ''}`}
+      style={{
+        borderBottom: '1px solid var(--bd-light)',
+        cursor: 'pointer',
+        background: isOverdue ? 'rgba(239,68,68,0.03)' : 'transparent',
+        opacity: isDone ? 0.55 : 1,
+        transition: 'background 0.12s',
+      }}
+      className="hover:bg-blue-50/60 group"
     >
-      <td className={tdCls}>
-        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_STYLE[task.status]}`}>
+      <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
+        <span style={{
+          fontSize: 11, fontWeight: 600, padding: '3px 8px',
+          borderRadius: 20, display: 'inline-block',
+          ...STATUS_STYLE[task.status],
+        }}>
           {STATUS_LABELS[task.status]}
         </span>
       </td>
-      <td className={`${tdCls} max-w-[280px]`}>
-        <span className="text-blue-600 hover:underline truncate block">
-          {task.milestoneFlag && <span className="mr-1 text-yellow-500">◆</span>}
-          {task.title}
-        </span>
+      <td style={{ padding: '10px 14px', maxWidth: 280 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {task.milestoneFlag && <span style={{ color: '#F59E0B', fontSize: 11, flexShrink: 0 }}>◆</span>}
+          <span style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+            className="group-hover:underline">
+            {task.title}
+          </span>
+        </div>
         {task.notes && (
-          <span className="text-xs text-gray-400 truncate block mt-0.5">{task.notes}</span>
+          <span style={{ fontSize: 11, color: 'var(--t3)', display: 'block', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {task.notes}
+          </span>
         )}
       </td>
-      <td className={`${tdCls} text-gray-600`}>{task.assignee || '—'}</td>
-      <td className={`${tdCls} text-gray-500`}>{task.category || '—'}</td>
-      <td className={`${tdCls} tabular-nums text-gray-600`}>{task.startDate.replace(/-/g, '/')}</td>
-      <td className={`${tdCls} tabular-nums text-gray-600`}>{task.endDate.replace(/-/g, '/')}</td>
-      <td className={`${tdCls} ${rem.color}`}>
-        {isDone ? <span className="text-gray-300">—</span> : rem.label}
+      <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{task.assignee || '—'}</td>
+      <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--t2)', whiteSpace: 'nowrap' }}>{task.category || '—'}</td>
+      <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--t2)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
+        {task.startDate.replace(/-/g, '/')}
       </td>
-      <td className={tdCls}>
-        {task.gcalEventId ? <span title="GCal同期済み">📅</span> : '—'}
+      <td style={{ padding: '10px 14px', fontSize: 12, color: 'var(--t2)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
+        {task.endDate.replace(/-/g, '/')}
+      </td>
+      <td style={{ padding: '10px 14px', fontSize: 11, fontWeight: 600, color: rem.color, whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)' }}>
+        {isDone ? <span style={{ color: 'var(--t3)', fontFamily: 'inherit' }}>—</span> : rem.label}
+      </td>
+      <td style={{ padding: '10px 14px', fontSize: 13, textAlign: 'center' }}>
+        {task.gcalEventId ? '📅' : <span style={{ color: 'var(--bd)' }}>—</span>}
       </td>
     </tr>
   );
 }
 
 function SectionHeader({
-  label, count, color, collapsed, onToggle,
+  label, count, accent, collapsed, onToggle,
 }: {
-  label: string; count: number; color: string; collapsed?: boolean; onToggle?: () => void;
+  label: string; count: number; accent: string; collapsed?: boolean; onToggle?: () => void;
 }) {
   return (
-    <tr className={`${color} select-none ${onToggle ? 'cursor-pointer' : ''}`} onClick={onToggle}>
-      <td colSpan={8} className="px-3 py-1.5">
-        <div className="flex items-center gap-2">
+    <tr
+      style={{ background: '#F8F7F4', cursor: onToggle ? 'pointer' : 'default', userSelect: 'none', borderBottom: '1px solid var(--bd)' }}
+      onClick={onToggle}
+    >
+      <td colSpan={8} style={{ padding: '8px 14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 3, height: 14, borderRadius: 2, background: accent, flexShrink: 0 }} />
           {onToggle && (
-            <span className="text-gray-500 text-xs">{collapsed ? '▶' : '▼'}</span>
+            <span style={{ fontSize: 10, color: 'var(--t3)', lineHeight: 1 }}>{collapsed ? '▶' : '▼'}</span>
           )}
-          <span className="text-xs font-bold text-gray-700">{label}</span>
-          <span className="text-xs text-gray-500 bg-white/60 px-1.5 py-0.5 rounded-full">{count}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--t1)', letterSpacing: '0.02em' }}>{label}</span>
+          <span style={{
+            fontSize: 10, fontWeight: 700, color: accent,
+            background: `${accent}18`, padding: '1px 7px', borderRadius: 20,
+            fontFamily: 'var(--font-mono)',
+          }}>{count}</span>
         </div>
       </td>
     </tr>
@@ -117,53 +144,58 @@ export default function ListView({ tasks, viewState, onTaskClick }: Props) {
     filtered.filter(t => t.status === 'done' || t.status === 'closed').sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
     [filtered]);
 
-  const thCls = 'text-left text-xs font-semibold text-gray-500 px-3 py-2 whitespace-nowrap';
+  const thStyle: React.CSSProperties = {
+    textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--t3)',
+    padding: '10px 14px', whiteSpace: 'nowrap', background: 'var(--surface)',
+    textTransform: 'uppercase', letterSpacing: '0.06em',
+    borderBottom: '2px solid var(--bd)',
+    position: 'sticky', top: 0, zIndex: 10,
+  };
 
   return (
-    <div className="flex-1 overflow-auto">
-      <table className="w-full border-collapse">
-        <thead className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
+    <div style={{ flex: 1, overflow: 'auto', background: 'var(--canvas)' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
           <tr>
-            <th className={thCls}>状態</th>
-            <th className={thCls}>件名</th>
-            <th className={thCls}>担当者</th>
-            <th className={thCls}>カテゴリー</th>
-            <th className={thCls}>開始日</th>
-            <th className={thCls}>終了日</th>
-            <th className={thCls}>残り日数</th>
-            <th className={thCls}>GCal</th>
+            <th style={thStyle}>状態</th>
+            <th style={thStyle}>件名</th>
+            <th style={thStyle}>担当者</th>
+            <th style={thStyle}>カテゴリー</th>
+            <th style={thStyle}>開始日</th>
+            <th style={thStyle}>終了日</th>
+            <th style={thStyle}>残り</th>
+            <th style={thStyle}>GCal</th>
           </tr>
         </thead>
         <tbody>
           {filtered.length === 0 && (
             <tr>
-              <td colSpan={8} className="text-center py-16 text-gray-400 text-sm">タスクがありません</td>
+              <td colSpan={8} style={{ textAlign: 'center', padding: '64px 0', color: 'var(--t3)', fontSize: 13 }}>
+                タスクがありません
+              </td>
             </tr>
           )}
 
-          {/* 進行中 */}
           {inProgress.length > 0 && (
             <>
-              <SectionHeader label="進行中" count={inProgress.length} color="bg-blue-50" />
+              <SectionHeader label="進行中" count={inProgress.length} accent="var(--accent)" />
               {inProgress.map(t => <TaskRow key={t.id} task={t} onTaskClick={onTaskClick} />)}
             </>
           )}
 
-          {/* 未着手 */}
           {todo.length > 0 && (
             <>
-              <SectionHeader label="未着手" count={todo.length} color="bg-gray-50" />
+              <SectionHeader label="未着手" count={todo.length} accent="var(--t3)" />
               {todo.map(t => <TaskRow key={t.id} task={t} onTaskClick={onTaskClick} />)}
             </>
           )}
 
-          {/* 完了（折りたたみ） */}
           {done.length > 0 && (
             <>
               <SectionHeader
                 label="Done"
                 count={done.length}
-                color="bg-green-50"
+                accent="#16A34A"
                 collapsed={!doneExpanded}
                 onToggle={() => setDoneExpanded(v => !v)}
               />

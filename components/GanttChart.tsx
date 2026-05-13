@@ -107,25 +107,25 @@ export default function GanttChart({ tasks, viewState, onTaskClick, onDateClick 
         <div style={{ minWidth: leftW + totalGanttWidth, position: 'relative' }}>
 
           {/* ── Sticky Header ── */}
-          <div style={{ position: 'sticky', top: 0, zIndex: 20, display: 'flex', backgroundColor: 'white', borderBottom: '1px solid #e5e7eb' }}>
+          <div style={{ position: 'sticky', top: 0, zIndex: 20, display: 'flex', backgroundColor: 'white', borderBottom: '1px solid var(--bd)' }}>
 
             {/* Left panel header */}
             <div style={{
               position: 'sticky', left: 0, zIndex: 30,
               width: leftW, minWidth: leftW, flexShrink: 0,
-              backgroundColor: '#f9fafb', borderRight: '1px solid #e5e7eb',
+              backgroundColor: '#FAFAF8', borderRight: '1px solid var(--bd)',
             }}>
               {panelVisible ? (
                 <div style={{ height: HEADER_MONTH_H + HEADER_DAY_H, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', height: HEADER_DAY_H, padding: '0 12px', gap: 8 }}>
-                    <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 600, flex: 1 }}>件名</span>
-                    <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 600, width: 80, textAlign: 'right' }}>担当者</span>
+                  <div style={{ display: 'flex', alignItems: 'center', height: HEADER_DAY_H, padding: '0 14px', gap: 8 }}>
+                    <span style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700, flex: 1, textTransform: 'uppercase', letterSpacing: '0.06em' }}>件名</span>
+                    <span style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700, width: 80, textAlign: 'right', textTransform: 'uppercase', letterSpacing: '0.06em' }}>担当者</span>
                     <button
                       onClick={() => setPanelVisible(false)}
                       title="パネルを隠す"
-                      style={{ fontSize: 10, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px' }}
+                      style={{ fontSize: 11, color: 'var(--t3)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', lineHeight: 1 }}
                     >
-                      ◀
+                      ‹
                     </button>
                   </div>
                 </div>
@@ -134,9 +134,9 @@ export default function GanttChart({ tasks, viewState, onTaskClick, onDateClick 
                   <button
                     onClick={() => setPanelVisible(true)}
                     title="パネルを表示"
-                    style={{ fontSize: 10, color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }}
+                    style={{ fontSize: 11, color: 'var(--t2)', background: 'none', border: 'none', cursor: 'pointer' }}
                   >
-                    ▶
+                    ›
                   </button>
                 </div>
               )}
@@ -145,15 +145,15 @@ export default function GanttChart({ tasks, viewState, onTaskClick, onDateClick 
             {/* Date header */}
             <div style={{ width: totalGanttWidth, flexShrink: 0 }}>
               {/* Month row */}
-              <div style={{ display: 'flex', height: HEADER_MONTH_H, borderBottom: '1px solid #e5e7eb' }}>
+              <div style={{ display: 'flex', height: HEADER_MONTH_H, borderBottom: '1px solid var(--bd-light)' }}>
                 {monthGroups.map((g, i) => (
                   <div key={i} style={{
                     width: g.dayCount * dayWidth, flexShrink: 0,
-                    borderRight: '1px solid #e5e7eb',
+                    borderRight: '1px solid var(--bd-light)',
                     display: 'flex', alignItems: 'center',
-                    padding: '0 8px', overflow: 'hidden',
+                    padding: '0 10px', overflow: 'hidden',
                   }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#374151', whiteSpace: 'nowrap' }}>{g.label}</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 500, color: 'var(--t2)', whiteSpace: 'nowrap', letterSpacing: '0.04em' }}>{g.label}</span>
                   </div>
                 ))}
               </div>
@@ -162,13 +162,15 @@ export default function GanttChart({ tasks, viewState, onTaskClick, onDateClick 
                 {days.map((day, i) => (
                   <div key={i} style={{
                     width: dayWidth, flexShrink: 0,
-                    borderRight: '1px solid #e5e7eb',
+                    borderRight: '1px solid var(--bd-light)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    backgroundColor: isWeekend(day) ? '#f3f4f6' : 'white',
+                    backgroundColor: isToday(day) ? 'rgba(99,102,241,0.06)' : isWeekend(day) ? 'var(--weekend)' : 'white',
+                    fontFamily: 'var(--font-mono)',
                     fontSize: 10,
                     fontWeight: isToday(day) ? 700 : 400,
-                    color: isToday(day) ? '#ef4444' : isWeekend(day) ? '#9ca3af' : '#6b7280',
+                    color: isToday(day) ? 'var(--accent)' : isWeekend(day) ? 'var(--t3)' : 'var(--t2)',
                     cursor: onDateClick ? 'pointer' : 'default',
+                    transition: 'background 0.1s',
                   }}
                   onClick={() => onDateClick?.(format(day, 'yyyy-MM-dd'))}
                   title={onDateClick ? `${format(day, 'yyyy/MM/dd')} にタスクを追加` : undefined}
@@ -187,19 +189,21 @@ export default function GanttChart({ tasks, viewState, onTaskClick, onDateClick 
             <div style={{
               position: 'sticky', left: 0, zIndex: 10,
               width: leftW, minWidth: leftW, flexShrink: 0,
-              backgroundColor: 'white', borderRight: '1px solid #e5e7eb',
+              backgroundColor: 'white', borderRight: '1px solid var(--bd)',
             }}>
               {displayRows.map((row, i) => {
                 if (row.type === 'group') {
                   return (
                     <div key={row.key} style={{
                       height: GROUP_ROW_H,
-                      backgroundColor: '#f3f4f6',
-                      borderBottom: '1px solid #e5e7eb',
+                      backgroundColor: '#F7F6F4',
+                      borderBottom: '1px solid var(--bd)',
+                      borderTop: i > 0 ? '1px solid var(--bd)' : undefined,
                       display: 'flex', alignItems: 'center',
-                      padding: '0 12px',
+                      padding: '0 14px', gap: 6,
                     }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#374151' }}>{row.label}</span>
+                      <div style={{ width: 3, height: 14, borderRadius: 2, background: 'var(--accent)', opacity: 0.6, flexShrink: 0 }} />
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--t1)', letterSpacing: '0.01em' }}>{row.label}</span>
                     </div>
                   );
                 }
@@ -209,31 +213,33 @@ export default function GanttChart({ tasks, viewState, onTaskClick, onDateClick 
                     onClick={() => onTaskClick(row.task)}
                     style={{
                       height: ROW_HEIGHT,
-                      borderBottom: '1px solid #f3f4f6',
+                      borderBottom: '1px solid var(--bd-light)',
                       display: 'flex', alignItems: 'center',
-                      padding: '0 12px', gap: 8,
+                      padding: '0 14px', gap: 8,
                       cursor: 'pointer',
+                      transition: 'background 0.12s',
                     }}
                     className="hover:bg-blue-50 group"
                   >
                     <span style={{
-                      fontSize: 13, color: '#2563eb', flex: 1,
+                      fontSize: 12.5, color: 'var(--accent)', flex: 1,
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      fontWeight: 500,
                     }}
                     className="group-hover:underline"
                     >
-                      {row.task.milestoneFlag && <span style={{ marginRight: 4 }}>◆</span>}
+                      {row.task.milestoneFlag && <span style={{ marginRight: 4, color: '#F59E0B' }}>◆</span>}
                       {row.task.title}
                     </span>
                     <span style={{
-                      fontSize: 11, color: '#9ca3af', width: 80,
+                      fontSize: 11, color: 'var(--t3)', width: 80,
                       textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
                       {row.task.assignee}
                     </span>
                   </div>
                 ) : (
-                  <div key={row.task.id} style={{ height: ROW_HEIGHT, borderBottom: '1px solid #f3f4f6' }} />
+                  <div key={row.task.id} style={{ height: ROW_HEIGHT, borderBottom: '1px solid var(--bd-light)' }} />
                 );
               })}
             </div>
@@ -246,7 +252,7 @@ export default function GanttChart({ tasks, viewState, onTaskClick, onDateClick 
                 <div key={i} style={{
                   position: 'absolute', top: 0, height: '100%',
                   left: i * dayWidth, width: dayWidth,
-                  backgroundColor: '#f9fafb', pointerEvents: 'none',
+                  backgroundColor: 'var(--weekend)', pointerEvents: 'none',
                 }} />
               ))}
 
@@ -255,8 +261,8 @@ export default function GanttChart({ tasks, viewState, onTaskClick, onDateClick 
                 <div key={row.key} style={{
                   position: 'absolute', left: 0, width: '100%',
                   top: rowYs[i], height: GROUP_ROW_H,
-                  backgroundColor: '#f3f4f6',
-                  borderBottom: '1px solid #e5e7eb',
+                  backgroundColor: '#F7F6F4',
+                  borderBottom: '1px solid var(--bd)',
                   pointerEvents: 'none',
                 }} />
               ))}
@@ -266,17 +272,28 @@ export default function GanttChart({ tasks, viewState, onTaskClick, onDateClick 
                 <div key={i} style={{
                   position: 'absolute', left: 0, right: 0,
                   top: rowYs[i] + (row.type === 'group' ? GROUP_ROW_H : ROW_HEIGHT) - 1,
-                  height: 1, backgroundColor: row.type === 'group' ? '#e5e7eb' : '#f3f4f6',
+                  height: 1, backgroundColor: row.type === 'group' ? 'var(--bd)' : 'var(--bd-light)',
                   pointerEvents: 'none',
                 }} />
               ))}
+
+              {/* Today column background */}
+              {showTodayLine && (
+                <div style={{
+                  position: 'absolute', top: 0, height: '100%',
+                  left: todayOffset * dayWidth, width: dayWidth,
+                  backgroundColor: 'rgba(99,102,241,0.04)',
+                  pointerEvents: 'none', zIndex: 1,
+                }} />
+              )}
 
               {/* Today vertical line */}
               {showTodayLine && (
                 <div style={{
                   position: 'absolute', top: 0, height: '100%',
                   left: todayOffset * dayWidth + dayWidth / 2 - 1,
-                  width: 2, backgroundColor: '#ef4444', opacity: 0.6,
+                  width: 2,
+                  background: 'linear-gradient(to bottom, rgba(244,63,94,0.9), rgba(244,63,94,0.3))',
                   pointerEvents: 'none', zIndex: 5,
                 }} />
               )}
@@ -331,11 +348,12 @@ export default function GanttChart({ tasks, viewState, onTaskClick, onDateClick 
                       onClick={() => onTaskClick(task)}
                       style={{
                         position: 'absolute', zIndex: 10,
-                        left: cx - 8, top: y + ROW_HEIGHT / 2 - 8,
-                        width: 16, height: 16, cursor: 'pointer',
+                        left: cx - 9, top: y + ROW_HEIGHT / 2 - 9,
+                        width: 18, height: 18, cursor: 'pointer',
                         transform: 'rotate(45deg)',
-                        backgroundColor: '#f59e0b',
-                        borderRadius: 2,
+                        background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                        borderRadius: 3,
+                        boxShadow: '0 2px 6px rgba(245,158,11,0.45)',
                       }}
                       title={task.title}
                     />
@@ -349,18 +367,19 @@ export default function GanttChart({ tasks, viewState, onTaskClick, onDateClick 
                     style={{
                       position: 'absolute', zIndex: 10,
                       left: barLeft,
-                      top: y + (ROW_HEIGHT - 26) / 2,
-                      width: barWidth, height: 26,
+                      top: y + (ROW_HEIGHT - 24) / 2,
+                      width: barWidth, height: 24,
                       backgroundColor: color,
-                      borderRadius: 4,
+                      borderRadius: 6,
                       display: 'flex', alignItems: 'center',
-                      padding: '0 8px', overflow: 'hidden',
+                      padding: '0 9px', overflow: 'hidden',
                       cursor: 'pointer',
+                      boxShadow: `0 1px 3px ${color}55, inset 0 1px 0 rgba(255,255,255,0.18)`,
                     }}
-                    className="hover:opacity-80 transition-opacity"
+                    className="hover:opacity-85 transition-opacity"
                     title={task.title}
                   >
-                    <span style={{ color: 'white', fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span style={{ color: 'white', fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '0.01em', textShadow: '0 1px 2px rgba(0,0,0,0.15)' }}>
                       {task.title}
                     </span>
                   </div>
@@ -427,8 +446,9 @@ export default function GanttChart({ tasks, viewState, onTaskClick, onDateClick 
 
           {/* Empty state */}
           {displayRows.length === 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
-              <p style={{ color: '#9ca3af', fontSize: 14 }}>タスクがありません。「タスク追加」ボタンから追加してください。</p>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 220, gap: 12 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 14, background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>📋</div>
+              <p style={{ color: 'var(--t3)', fontSize: 13, fontWeight: 500 }}>タスクがありません</p>
             </div>
           )}
         </div>
